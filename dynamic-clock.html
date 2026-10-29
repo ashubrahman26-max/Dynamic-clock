@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Clock — Modern Way</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#222328;
+    --panel:#2b2c2f;
+    --muted:#9aa0a6;
+    --accent:#6be26b;
+    --accent2:#4da6ff;
+    --highlight:#ff3b6b;
+    --glass: rgba(255,255,255,0.03);
+  }
+  
+  *,*::before,*::after{
+    box-sizing:border-box;
+  }
+  
+  html,body{
+    height:100%;
+    margin:0;
+    background:
+      radial-gradient(ellipse at 14% 16%, rgba(255,153,51,0.36), transparent 38%),
+      radial-gradient(ellipse at 82% 24%, rgba(255,255,255,0.12), transparent 34%),
+      radial-gradient(ellipse at 86% 84%, rgba(19,136,8,0.34), transparent 42%),
+      linear-gradient(135deg,#28252a 0%,#17191e 48%,#1b211d 100%);
+    font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color:#dfe6ea;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+
+  .card{
+    width: 760px;
+    max-width: 96vw;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0));
+    border-radius:14px;
+    padding:36px 24px;
+    border:1px solid rgba(255,255,255,0.08);
+    box-shadow:0 14px 40px rgba(0,0,0,0.55),0 0 55px rgba(255,153,51,0.08),0 0 60px rgba(19,136,8,0.08);
+    text-align:center;
+    backdrop-filter:blur(10px);
+  }
+
+  h1{
+    margin:0 0 18px 0;
+    font-weight:300;
+    color:#e9eef2;
+    font-size:28px;
+    letter-spacing:0.6px;
+  }
+
+  .clock-wrap{
+    position:relative;
+    width:420px;
+    height:420px;
+    margin: 8px auto 10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* rings container */
+  .ring {
+    position:absolute;
+    inset:0;
+    display:grid;
+    place-items:center;
+  }
+
+  /* Ring base circle */
+  .ring .ring-track{
+    position:absolute;
+    border-radius:50%;
+    background:transparent;
+    box-shadow: inset 0 0 0 12px rgba(255,255,255,0.02);
+    display:block;
+    transition:box-shadow 0.3s ease;
+  }
+
+  /* different ring sizes */
+  .ring.days .ring-track{ 
+    width:360px; 
+    height:360px; 
+  }
+  .ring.months .ring-track{ 
+    width:290px; 
+    height:290px; 
+  }
+  .ring.weekdays .ring-track{ 
+    width:220px; 
+    height:220px; 
+  }
+  .ring.center .ring-track{ 
+    width:140px; 
+    height:140px; 
+    box-shadow: inset 0 12px 18px rgba(0,0,0,0.6), 0 6px 18px rgba(0,0,0,0.6); 
+    background:linear-gradient(180deg,#2b2c2f,#212224); 
+  }
+
+  /* labels that sit around rings */
+  .labels {
+    position:absolute;
+    width:100%;
+    height:100%;
+    top:0; 
+    left:0;
+    pointer-events:none;
+  }
+  
+  .labels .item{
+    position:absolute;
+    left:50%;
+    top:50%;
+    color:var(--muted);
+    font-size:12px;
+    user-select:none;
+    white-space:nowrap;
+    letter-spacing:0.6px;
+    transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change:transform, color, font-weight;
+  }
+
+  .labels .item.active{
+    color:var(--accent);
+    font-weight:700;
+    text-shadow:0 2px 6px rgba(107, 226, 107, 0.4);
+    transform:scale(1.15);
+  }
+  
+  .labels .item.active-month{
+    color:var(--accent2);
+    font-weight:700;
+    text-shadow:0 2px 6px rgba(77, 166, 255, 0.4);
+    transform:scale(1.15);
+  }
+  
+  .labels .item.active-date{
+    color:var(--highlight);
+    font-weight:700;
+    text-shadow:0 2px 6px rgba(255, 59, 107, 0.4);
+    transform:scale(1.2);
+  }
+
+  /* center analog clock */
+  .center-face{
+    position:absolute;
+    width:120px;
+    height:120px;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    z-index:20;
+  }
+  
+  .hand{
+    position:absolute;
+    background:white;
+    transform-origin:50% 100%;
+    top:50%;
+    left:50%;
+    border-radius:2px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    will-change:transform;
+  }
+  
+  .hand.hour{ 
+    height:34px; 
+    width:6px; 
+    background:#e9eef2; 
+    margin-top:-34px;
+  }
+  
+  .hand.minute{ 
+    height:46px; 
+    width:4px; 
+    background:#d6dde2;
+    margin-top:-46px;
+  }
+  
+  .hand.second{ 
+    height:56px; 
+    width:2px; 
+    background:var(--highlight);
+    margin-top:-56px;
+    transition:transform 0.05s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .center-dot{
+    position:absolute;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:#fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    z-index:30;
+  }
+
+  /* Date and year bar outside the clock circle */
+  .center-meta{
+    left:50%;
+    display:flex;
+    gap:12px;
+    width:max-content;
+    justify-content:center;
+    align-items:center;
+    margin:2px auto 0;
+    padding:9px 16px;
+    border:1px solid rgba(255,255,255,0.16);
+    border-radius:12px;
+    background:linear-gradient(110deg,rgba(255,153,51,0.15),rgba(255,255,255,0.07) 50%,rgba(19,136,8,0.15));
+    box-shadow:0 6px 22px rgba(0,0,0,0.4),0 0 18px rgba(255,153,51,0.10),0 0 18px rgba(19,136,8,0.10);
+    pointer-events:none;
+  }
+  
+  .meta-pill{
+    font-size:12px;
+    padding:2px 0;
+    border-radius:0;
+    background:transparent;
+    color:var(--muted);
+    letter-spacing:0.6px;
+    min-width:0;
+    text-align:center;
+    transition:all 0.3s ease;
+    border:0;
+  }
+  
+  .meta-pill.active{ 
+    color:var(--accent); 
+    font-weight:700; 
+    background:rgba(107, 226, 107, 0.1);
+    border-color:var(--accent);
+  }
+
+  /* decorative small text for date at top of card */
+  .subtitle{
+    margin-top:12px;
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.5;
+  }
+
+  /* responsive adjustments */
+  @media (max-width:520px){
+    .clock-wrap{ 
+      width:320px; 
+      height:320px; 
+    }
+    .ring.days .ring-track{ 
+      width:280px; 
+      height:280px; 
+    }
+    .ring.months .ring-track{ 
+      width:220px; 
+      height:220px; 
+    }
+    .ring.weekdays .ring-track{ 
+      width:160px; 
+      height:160px; 
+    }
+    .ring.center .ring-track{
+      width:110px;
+      height:110px;
+    }
+    .center-face{ 
+      width:100px; 
+      height:100px; 
+    }
+    .center-meta{
+      gap:9px;
+      padding:8px 12px;
+    }
+    .meta-pill{
+      font-size:10px;
+      padding:2px 0;
+    }
+    .labels .item{
+      font-size:11px;
+    }
+    h1{
+      font-size:24px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hand.second{
+      transition:none;
+    }
+    .labels .item{
+      transition:color 0.3s ease;
+    }
+  }
+
+</style>
+</head>
+<body>
+  <div class="card" role="main">
+    <div class="clock-wrap" aria-label="Modern analog clock with date rings">
+      <!-- Days ring -->
+      <div class="ring days" data-radius="180">
+        <div class="ring-track"></div>
+        <div class="labels days-labels" role="presentation"></div>
+      </div>
+
+      <!-- Months ring -->
+      <div class="ring months" data-radius="145">
+        <div class="ring-track"></div>
+        <div class="labels months-labels" role="presentation"></div>
+      </div>
+
+      <!-- Weekdays ring -->
+      <div class="ring weekdays" data-radius="108">
+        <div class="ring-track"></div>
+        <div class="labels weekdays-labels" role="presentation"></div>
+      </div>
+
+      <!-- center face and hands -->
+      <div class="ring center">
+        <div class="ring-track"></div>
+        <div class="center-face" id="centerFace">
+          <div class="hand hour" id="hourHand" aria-hidden="true"></div>
+          <div class="hand minute" id="minuteHand" aria-hidden="true"></div>
+          <div class="hand second" id="secondHand" aria-hidden="true"></div>
+          <div class="center-dot" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="center-meta" aria-label="Current date">
+      <div class="meta-pill" id="meta-date" aria-label="Current date">1</div>
+      <div class="meta-pill" id="meta-day" aria-label="Current weekday">MON</div>
+      <div class="meta-pill" id="meta-month" aria-label="Current month">JAN</div>
+      <div class="meta-pill" id="meta-year" aria-label="Current year">2026</div>
+    </div>
+
+    <div class="subtitle">Concentric rings show date, month and weekday. Center is analog clock.</div>
+  </div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ---------- Utility data ---------- */
+  const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  const WEEKDAYS = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+
+  /* ---------- DOM references ---------- */
+  const hourHand = document.getElementById('hourHand');
+  const minuteHand = document.getElementById('minuteHand');
+  const secondHand = document.getElementById('secondHand');
+  const metaMonth = document.getElementById('meta-month');
+  const metaDay = document.getElementById('meta-day');
+  const metaDate = document.getElementById('meta-date');
+  const metaYear = document.getElementById('meta-year');
+
+  /* ---------- Build labels for each ring ---------- */
+  function createLabels(containerSelector, items, radius){
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
+    
+    container.innerHTML = "";
+    const count = items.length;
+    const fragment = document.createDocumentFragment();
+    
+    for(let i = 0; i < count; i++){
+      const el = document.createElement("div");
+      el.className = "item";
+      el.textContent = items[i];
+      
+      // Calculate angle - start at top (-90deg) and distribute evenly
+      const angle = (360 / count) * i - 90;
+      el.dataset.angle = angle;
+      el.dataset.index = i;
+      
+      // Position element around the ring
+      el.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(${-angle}deg)`;
+      
+      fragment.appendChild(el);
+    }
+    
+    container.appendChild(fragment);
+  }
+
+  /* Create only the dates that exist in the current month */
+  function createDays(containerSelector, radius, count){
+    const days = Array.from({length: count}, (_, i) => String(i + 1));
+    createLabels(containerSelector, days, radius);
+  }
+
+  /* Initialize all rings using the current month's real length */
+  function initializeRings(dayCount = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()) {
+    const isMobile = window.innerWidth <= 520;
+    createDays('.days-labels', isMobile ? 130 : 170, dayCount);
+    createLabels('.months-labels', MONTHS, isMobile ? 100 : 135);
+    createLabels('.weekdays-labels', WEEKDAYS, isMobile ? 70 : 100);
+  }
+
+  /* ---------- Update active highlights ---------- */
+  function setActiveLabel(containerSelector, predicate, activeClass){
+    const items = document.querySelectorAll(containerSelector + ' .item');
+    items.forEach((item, idx) => {
+      const shouldBeActive = predicate(item, idx);
+      item.classList.toggle(activeClass, shouldBeActive);
+    });
+  }
+
+  /* ---------- Clock update function ---------- */
+  let lastSecond = -1;
+  let lastMonthKey = '';
+  
+  function updateClock(){
+    const now = new Date();
+    const sec = now.getSeconds();
+    const min = now.getMinutes();
+    const hr = now.getHours();
+    const year = now.getFullYear();
+
+    // Calculate hand rotations
+    const secondsRotation = sec * 6; // 6deg per second
+    const minutesRotation = min * 6 + sec * 0.1; // 6deg per minute + smooth movement
+    const hoursRotation = (hr % 12) * 30 + min * 0.5; // 30deg per hour + smooth movement
+
+    // Update hands with smooth rotation
+    if (secondHand) {
+      secondHand.style.transform = `translate(-50%, 0) rotate(${secondsRotation}deg)`;
+    }
+    if (minuteHand) {
+      minuteHand.style.transform = `translate(-50%, 0) rotate(${minutesRotation}deg)`;
+    }
+    if (hourHand) {
+      hourHand.style.transform = `translate(-50%, 0) rotate(${hoursRotation}deg)`;
+    }
+
+    // Only update labels when second changes (performance optimization)
+    if (sec !== lastSecond) {
+      lastSecond = sec;
+      
+      // Update date highlighting
+      const date = now.getDate();
+      const dayCount = new Date(year, now.getMonth() + 1, 0).getDate();
+      const monthKey = `${year}-${now.getMonth()}-${dayCount}`;
+      if (monthKey !== lastMonthKey) {
+        lastMonthKey = monthKey;
+        initializeRings(dayCount);
+      }
+      setActiveLabel('.days-labels', (el, idx) => idx === date - 1, 'active-date');
+
+      // Update month highlighting
+      const month = now.getMonth(); // 0..11
+      setActiveLabel('.months-labels', (el, idx) => idx === month, 'active-month');
+
+      // Update weekday highlighting
+      const weekday = now.getDay(); // 0..6 (Sun..Sat)
+      setActiveLabel('.weekdays-labels', (el, idx) => idx === weekday, 'active');
+
+      // Update center meta pills
+      if (metaMonth) metaMonth.textContent = MONTHS[month];
+      if (metaDay) metaDay.textContent = WEEKDAYS[weekday];
+      if (metaDate) metaDate.textContent = date;
+      if (metaYear) metaYear.textContent = year;
+    }
+  }
+
+  /* ---------- Handle window resize ---------- */
+  let resizeTimeout;
+  function handleResize() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      initializeRings();
+      updateClock();
+    }, 250);
+  }
+
+  /* ---------- Initialize and start clock ---------- */
+  function init() {
+    initializeRings();
+    updateClock();
+    
+    // Update clock every 50ms for smooth second hand movement
+    setInterval(updateClock, 50);
+    
+    // Handle window resize
+    window.addEventListener('resize', handleResize);
+  }
+
+  // Start when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
